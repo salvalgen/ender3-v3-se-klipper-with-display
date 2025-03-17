@@ -441,8 +441,8 @@ class PrinterData:
     def printSelectedFile(self):
         self.sendGCode('SDCARD_PRINT_FILE FILENAME="{}"'.format(str(self.selectedFile)))
 
-    def scanMetadada(self):
-        sdcard = self.printer.lookup_object('virtual-sdcard')
+    def scanMetadata(self):
+        sdcard = self.printer.lookup_object('virtual_sdcard')
         fileDir = os.path.join(sdcard.sdcard_dirname, self.selectedFile)
         self.metadata = {
             'layer_height': None,
@@ -456,8 +456,8 @@ class PrinterData:
                 executable_block_end = False
                 for line in file:
                     if executable_block_end:
-                        if "default_print_profile" in line:
-                            match = re.search(r"(\d+\.\d+)mm", line) # Extract the value
+                        if "; layer_height" in line:
+                            match = re.search(r"(\d+\.\d+)", line) # Extract the value
                             if match:
                                 self.metadata['layer_height'] = f"{float(match.group(1))}mm"
 
@@ -481,7 +481,7 @@ class PrinterData:
 
                             
         except FileNotFoundError:
-            pass # Use the empty data
+            self.log(f"Unable to find file: {fileDir}")
 
 
     def sendGCode(self, Gcode):

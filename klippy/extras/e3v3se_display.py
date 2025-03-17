@@ -2983,7 +2983,7 @@ class E3v3seDisplay:
 
         self.lcd.draw_icon(   # Draw preview image
             False,
-            self.selected_language,
+            self.ICON,
             self.icon_preview_placeholder,
             self.lcd.screen_width / 2 - 48,
             30
@@ -3008,34 +3008,36 @@ class E3v3seDisplay:
             12, 184
         )
 
+        self.pd.scanMetadata()
+
         # Show print information
         self.lcd.draw_string(
             False,
-            self.lcd.font_8x16,
+            self.lcd.font_6x12,
             self.color_white,
             self.color_background_black,
-            self.lcd.screen_width - 80 if self.pd.metadata['estimated_time'] else 215,
-            134,
+            self.lcd.screen_width - 80 if self.pd.metadata['estimated_time'] else 205,
+            134 + 5,
             self.pd.metadata['estimated_time'] if self.pd.metadata['estimated_time'] else "N/A"
         )
 
         self.lcd.draw_string(
             False,
-            self.lcd.font_8x16,
+            self.lcd.font_6x12,
             self.color_white,
             self.color_background_black,
-            self.lcd.screen_width - 80 if self.pd.metadata['filament_used'] else 215,
-            159,
+            self.lcd.screen_width - 80 if self.pd.metadata['filament_used'] else 205,
+            159 + 5,
             self.pd.metadata['filament_used'] if self.pd.metadata['filament_used'] else "N/A"
         )
 
         self.lcd.draw_string(
             False,
-            self.lcd.font_8x16,
+            self.lcd.font_6x12,
             self.color_white,
             self.color_background_black,
-            self.lcd.screen_width - 80 if self.pd.metadata['layer_height'] else 215,
-            184,
+            self.lcd.screen_width - 80 if self.pd.metadata['layer_height'] else 205,
+            184 + 5,
             self.pd.metadata['layer_height'] if self.pd.metadata['layer_height'] else 'N/A'
         )
 
