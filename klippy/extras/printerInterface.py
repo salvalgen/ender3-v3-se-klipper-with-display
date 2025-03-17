@@ -4,6 +4,7 @@ repository available on (https://github.com/odwdinc/DWIN_T5UIC1_LCD)
 with no to minimal changes. All credits go to the original author.
 """
 import logging
+import os, re
 
 
 class xyze_t:
@@ -148,6 +149,14 @@ class PrinterData:
     subdirIndex = 0
     fl = []
     subdirPath = ''
+    selectedFile = ''
+
+    metadata = {
+        'layer_height': None,
+        'estimated_time': None,
+        'filament_used': None,
+        'thumbnail': None
+    }
 
     MACHINE_SIZE = "220x220x250"
     SHORT_BUILD_VERSION = "1.00"
@@ -426,9 +435,54 @@ class PrinterData:
             "extruder").get_status(self.reactor.monotonic())
         return (int(extruder["target"]) > int(extruder["temperature"])) if extruder else False
     
+    def openFile(self, file):
+        self.selectedFile = file
     
-    def openAndPrintFile(self, file):
-        self.sendGCode('SDCARD_PRINT_FILE FILENAME="{}"'.format(str(file)))
+    def printSelectedFile(self):
+        self.sendGCode('SDCARD_PRINT_FILE FILENAME="{}"'.format(str(self.selectedFile)))
+
+    def scanMetadata(self):
+        sdcard = self.printer.lookup_object('virtual_sdcard')
+        fileDir = os.path.join(sdcard.sdcard_dirname, self.selectedFile)
+        self.metadata = {
+            'layer_height': None,
+            'estimated_time': None,
+            'filament_used': None,
+            'thumbnail': None # Default to placeholder image
+        }
+        
+        try:
+            with open(fileDir, 'r') as file:
+                executable_block_end = False
+                for line in file:
+                    if executable_block_end:
+                        if "; layer_height" in line:
+                            match = re.search(r"(\d+\.\d+)", line) # Extract the value
+                            if match:
+                                self.metadata['layer_height'] = f"{float(match.group(1))}mm"
+
+                        elif "estimated printing time" in line:
+                            match = re.search(r'(?:(\d+)h)?\s*(\d+)m?\s*(\d+)s?', line)  # Extract hours, minutes, and seconds
+                            if match:
+                                hours = match.group(1) if match.group(1) else ""
+                                minutes = match.group(2) if match.group(2) else "00"
+                                seconds = match.group(3) if match.group(3) else "00"
+                                # Format as --h--m--s
+                                self.metadata['estimated_time'] = f"{hours}h{minutes}m{seconds}s" if hours else f'{minutes}m{seconds}s'
+
+                        elif "filament used [mm]" in line:
+                            match = re.search(r"filament used \[mm\] = (\d+\.\d+)", line) # Extract the value
+                            if match:
+                                filament_used_mm = float(match.group(1))
+                                self.metadata['filament_used'] = f"{round(filament_used_mm / 1000, 2)}m"
+                        
+                    if "; EXECUTABLE_BLOCK_END" in line:
+                        executable_block_end = True
+
+                            
+        except FileNotFoundError:
+            self.log(f"Unable to find file: {fileDir}")
+
 
     def sendGCode(self, Gcode):
         self.gcode._process_commands([Gcode])

@@ -210,6 +210,7 @@ class E3v3seDisplay:
     select_cancel = select_t()
     select_misc = select_t()
     select_icon_finder = select_t()
+    select_print_preview = select_t()
 
     index_file = MROWS
     index_prepare = MROWS
@@ -270,6 +271,8 @@ class E3v3seDisplay:
     ManualProbeProcess = 35
     MessagePopup = 36
     IconFinder = 37
+
+    print_preview = 38
 
     MINUNITMULT = 10
 
@@ -393,6 +396,7 @@ class E3v3seDisplay:
     icon_confirm_button = 73
     icon_Info_0 = 90
     icon_Info_1 = 91
+    icon_preview_placeholder = 143
 
     icon_progress_0 = 145
     icon_nozzle_heating_0 = 110
@@ -492,6 +496,9 @@ class E3v3seDisplay:
     icon_TEXT_max_acceleration_y = 113
     icon_TEXT_max_acceleration_z = 114
     icon_TEXT_max_acceleration_e = 115
+    icon_TEXT_estimated_time = 127
+    icon_TEXT_filament_used = 128
+    icon_TEXT_layer_height = 129
     icon_TEXT_hardware_version = 156
     icon_TEXT_bed_size = 59
     icon_TEXT_contact = 60
@@ -810,19 +817,13 @@ class E3v3seDisplay:
                     self.Redraw_SD_List()
             else:
                 if self.pd.selectFile(self.select_file.now - 1):
-                    # Reset highlight for next entry
-
-                    # // Start choice and print SD file
-                    self.pd.HMI_flag.heat_flag = True
-                    self.pd.HMI_flag.print_finish = False
-                    self.pd.HMI_ValueStruct.show_mode = 0
-
-                    self.pd.openAndPrintFile(self.pd.fl[self.select_file.now - 1])
+                    self.pd.openFile(self.pd.fl[self.select_file.now - 1])
 
                     self.select_print.reset()
                     self.select_file.reset()
 
-                    self.Goto_PrintProcess()
+                    self.checkkey = self.print_preview
+                    self.Draw_Print_Preview()
                 else:
                     self.Redraw_SD_List()
 
@@ -1160,6 +1161,30 @@ class E3v3seDisplay:
                 self.checkkey = self.Print_window
                 self.Popup_window_PauseOrStop()
 
+    def HMI_PrintPreview(self):
+        encoder_state = self.get_encoder_state()
+        if encoder_state == self.ENCODER_DIFF_NO:
+            return
+        elif encoder_state == self.ENCODER_DIFF_CW or encoder_state == self.ENCODER_DIFF_FAST_CW:
+            self.select_cancel.set(1)
+            self.select_confirm.reset()
+            self.Draw_Print_Confirmation_Buttons()
+        elif encoder_state == self.ENCODER_DIFF_CCW or encoder_state == self.ENCODER_DIFF_FAST_CCW:
+            self.select_confirm.set(1)
+            self.select_cancel.reset()
+            self.Draw_Print_Confirmation_Buttons()
+        elif encoder_state == self.ENCODER_DIFF_ENTER:
+            if self.select_confirm.now:
+                self.pd.HMI_flag.heat_flag = True
+                self.pd.HMI_flag.print_finish = False
+                self.pd.HMI_ValueStruct.show_mode = 0
+
+                self.pd.printSelectedFile()
+                self.Goto_PrintProcess()
+            else:
+                self.pd.selectedFile = None
+                self.checkkey = self.SelectFile
+                self.Draw_Print_File_Menu()
     def HMI_ManualProbe(self):
         encoder_state = self.get_encoder_state()
         if encoder_state == self.ENCODER_DIFF_NO or self.manual_probe == None:
@@ -2811,6 +2836,33 @@ class E3v3seDisplay:
             self.HEADER_HEIGHT + 130,
         )
 
+    def Draw_Print_Confirmation_Buttons(self):
+        if self.select_confirm.now:
+            c1 = self.color_white
+            c2 = self.color_popup_background
+        elif self.select_cancel.now == 1:
+            c1 = self.color_popup_background
+            c2 = self.color_white
+        else:
+            c1 = self.color_popup_background
+            c2 = self.color_popup_background
+        self.lcd.draw_rectangle(1, c1, 12, 225, 97, 260)
+        self.lcd.draw_rectangle(1, c2, 136, 225, 221, 260)
+        self.lcd.draw_icon(
+            True,
+            self.selected_language,
+            self.icon_confirm_button,
+            14,
+            227
+        )
+        self.lcd.draw_icon(
+            True,
+            self.selected_language,
+            self.icon_cancel_button,
+            138,
+            227
+        )          
+
     def Draw_Printing_Screen(self):
         # Tune
         self.lcd.draw_icon(True, self.ICON, self.icon_tune, 12, 191)
@@ -2911,6 +2963,90 @@ class E3v3seDisplay:
             166,
             (remain_time % 3600) / 60,
         )
+
+    def Draw_Print_Preview(self):
+        self.Clear_Main_Window()
+
+        
+
+        self.lcd.draw_string_centered(
+            False,
+            self.lcd.font_8x8,
+            self.color_white,
+            self.color_background_black,
+            self.MENU_CHR_W,
+            self.MENU_CHR_W,
+            self.lcd.screen_width / 2,
+            self.HEADER_HEIGHT / 2,
+            self.pd.selectedFile.split('/')[-1][:28]
+        )
+
+        self.lcd.draw_icon(   # Draw preview image
+            False,
+            self.ICON,
+            self.icon_preview_placeholder,
+            self.lcd.screen_width / 2 - 48,
+            30
+        )
+
+        self.lcd.draw_icon(
+            False,
+            self.selected_language,
+            self.icon_TEXT_estimated_time,
+            12, 134
+        )
+        self.lcd.draw_icon(
+            False,
+            self.selected_language,
+            self.icon_TEXT_filament_used,
+            12, 159
+        )
+        self.lcd.draw_icon(
+            False,
+            self.selected_language,
+            self.icon_TEXT_layer_height,
+            12, 184
+        )
+
+        self.pd.scanMetadata()
+
+        # Show print information
+        self.lcd.draw_string(
+            False,
+            self.lcd.font_6x12,
+            self.color_white,
+            self.color_background_black,
+            self.lcd.screen_width - 80 if self.pd.metadata['estimated_time'] else 205,
+            134 + 5,
+            self.pd.metadata['estimated_time'] if self.pd.metadata['estimated_time'] else "N/A"
+        )
+
+        self.lcd.draw_string(
+            False,
+            self.lcd.font_6x12,
+            self.color_white,
+            self.color_background_black,
+            self.lcd.screen_width - 80 if self.pd.metadata['filament_used'] else 205,
+            159 + 5,
+            self.pd.metadata['filament_used'] if self.pd.metadata['filament_used'] else "N/A"
+        )
+
+        self.lcd.draw_string(
+            False,
+            self.lcd.font_6x12,
+            self.color_white,
+            self.color_background_black,
+            self.lcd.screen_width - 80 if self.pd.metadata['layer_height'] else 205,
+            184 + 5,
+            self.pd.metadata['layer_height'] if self.pd.metadata['layer_height'] else 'N/A'
+        )
+
+        self.select_confirm.set(1)
+        self.select_cancel.reset()
+
+        self.Draw_Print_Confirmation_Buttons()
+
+        self.Draw_Status_Area()
 
     def Draw_Print_File_Menu(self):
         self.Clear_Title_Bar()
@@ -4383,6 +4519,8 @@ class E3v3seDisplay:
             self.HMI_MessagePopup()
         elif self.checkkey == self.IconFinder:
             self.HMI_IconFinder()
+        elif self.checkkey == self.print_preview:
+            self.HMI_PrintPreview()
 
         self.time_since_movement = 0
 
