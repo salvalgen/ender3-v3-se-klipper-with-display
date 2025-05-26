@@ -241,28 +241,38 @@ class PrinterData:
         self.names = []
         self.subdirs = []
 
-        # Find all folders in current subdirectory
-        for file, _ in files:
-            path = file.split('/')
-            if(file.startswith(self.subdirPath)):
-                name = path[self.subdirIndex]
-                if len(path) > self.subdirIndex + 1:
-                    if not name in self.subdirs:
-                        self.subdirs.append(name) # add to checked subdirs
-                        self.names.append(name) # add only the name
-                        self.fl.append(file) # add full filepath
+        folders = []
+        files_list = []
 
-        # Find all files
-        for file, _ in files:
+        for file, size, mtime in files:
+            if not file.startswith(self.subdirPath):
+                continue
+
             path = file.split('/')
-            if file.startswith(self.subdirPath) :
-                name = path[self.subdirIndex]
-                if len(path) == self.subdirIndex + 1:
-                    self.names.append(path[self.subdirIndex])
-                    self.fl.append(file)
-        
+            if len(path) <= self.subdirIndex:
+                continue
+
+            name = path[self.subdirIndex]
+
+            # folders
+            if len(path) > self.subdirIndex + 1:
+                if name not in [f[0] for f in folders]:
+                    folders.append((name, mtime, file))
+                    self.subdirs.append(name)
+            # files
+            elif len(path) == self.subdirIndex + 1:
+                files_list.append((name, mtime, file))
+
+        # sort by date, newer on top
+        folders.sort(key=lambda x: x[1], reverse=True)
+        files_list.sort(key=lambda x: x[1], reverse=True)
+
+        # combining lists
+        self.names = [f[0] for f in folders] + [f[0] for f in files_list]
+        self.fl = [f[2] for f in folders] + [f[2] for f in files_list]
+
         return self.names
-    
+        
     def selectFile(self, index):
         file = self.fl[index]
         if len(file.split('/')) == self.subdirIndex + 1:
