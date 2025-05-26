@@ -244,7 +244,7 @@ class PrinterData:
         folders = []
         files_list = []
 
-        for file, stat in files:
+        for file, size, mtime in files:
             if not file.startswith(self.subdirPath):
                 continue
 
@@ -257,11 +257,11 @@ class PrinterData:
             # folders
             if len(path) > self.subdirIndex + 1:
                 if name not in [f[0] for f in folders]:
-                    folders.append((name, stat.st_mtime, file))
+                    folders.append((name, mtime, file))
                     self.subdirs.append(name)
             # files
             elif len(path) == self.subdirIndex + 1:
-                files_list.append((name, stat.st_mtime, file))
+                files_list.append((name, mtime, file))
 
         # sort by date, newer on top
         folders.sort(key=lambda x: x[1], reverse=True)
