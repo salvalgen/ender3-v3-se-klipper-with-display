@@ -160,7 +160,7 @@ class VirtualSD:
         # List SD card
         files = self.get_file_list()
         gcmd.respond_raw("Begin file list")
-        for fname, fsize in files:
+        for fname, fsize, _ in files:
             gcmd.respond_raw("%s %d" % (fname, fsize))
         gcmd.respond_raw("End file list")
     def cmd_M21(self, gcmd):
@@ -178,7 +178,7 @@ class VirtualSD:
     def _load_file(self, gcmd, filename, check_subdirs=False):
         files = self.get_file_list(check_subdirs)
         flist = [f[0] for f in files]
-        files_by_lower = { fname.lower(): fname for fname, fsize in files }
+        files_by_lower = { fname.lower(): fname for fname, fsize, _ in files }
         fname = filename
         try:
             if fname not in flist:
