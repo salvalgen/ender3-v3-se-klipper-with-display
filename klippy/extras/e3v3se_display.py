@@ -2491,14 +2491,14 @@ class E3v3seDisplay:
 
     def Draw_Status_Area(self, with_update=True):
         #  Clear the bottom area of the screen
-        self.lcd.draw_rectangle(
-            1,
-            self.color_background_black,
-            0,
-            self.STATUS_Y,
-            self.lcd.screen_width,
-            self.lcd.screen_height - 1,
-        )
+        # self.lcd.draw_rectangle(
+        #     1,
+        #     self.color_background_black,
+        #     0,
+        #     self.STATUS_Y,
+        #     self.lcd.screen_width,
+        #     self.lcd.screen_height - 1,
+        # )
 
         # nozzle temp area
         if self.pd.nozzleIsHeating():
