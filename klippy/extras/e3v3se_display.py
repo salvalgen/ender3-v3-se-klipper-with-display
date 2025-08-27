@@ -744,6 +744,7 @@ class E3v3seDisplay:
                     else:
                         self.icon_StartInfo(True)
         elif encoder_state == self.ENCODER_DIFF_ENTER:
+            self.Clear_Status_Area();
             if self.select_page.now == 0:  # Print File
                 self.checkkey = self.SelectFile
                 self.Draw_Print_File_Menu()
@@ -760,7 +761,7 @@ class E3v3seDisplay:
             if self.select_page.now == 3:  # Leveling or Info
                 if self.pd.HAS_ONESTEP_LEVELING:
                     self.checkkey = self.Misc
-                    self.Clear_Screen()
+                    #self.Clear_Screen()
                     self.Draw_Misc_Menu()
                 else:
                     self.checkkey = self.Info
@@ -2491,15 +2492,15 @@ class E3v3seDisplay:
 
     def Draw_Status_Area(self, with_update=True):
         #  Clear the bottom area of the screen
-        self.lcd.draw_rectangle(
-            1,
-            self.color_background_black,
-            0,
-            self.STATUS_Y,
-            self.lcd.screen_width,
-            self.lcd.screen_height - 1,
-        )
-
+        # self.lcd.draw_rectangle(
+        #     1,
+        #     self.color_background_black,
+        #     0,
+        #     self.STATUS_Y,
+        #     self.lcd.screen_width,
+        #     self.lcd.screen_height - 1,
+        # )
+        
         # nozzle temp area
         if self.pd.nozzleIsHeating():
             self.lcd.draw_icon(True, self.GIF_ICON, self.icon_nozzle_heating_0, 6, 262)
